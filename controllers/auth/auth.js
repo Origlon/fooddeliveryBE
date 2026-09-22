@@ -1,5 +1,13 @@
 import bcrypt from "bcryptjs";
 import { User } from "../../schemas/user.schemas.js";
+import jwt from "jsonwebtoken";
+const JWT_SECRET = "testing";
+
+const signAuthToken = (user) => {
+  return jwt.sign({ email: user.email, password: user.password }, JWT_SECRET, {
+    expiresIn: "7d",
+  });
+};
 
 const readCredentials = (body) => {
   if (typeof body?.email !== "string" || typeof body?.password !== "string") {
@@ -49,12 +57,16 @@ export const loginController = async (request, response) => {
       });
     }
 
+    const token = signAuthToken(user);
+
     return response.status(200).json({
       message: "Email and password verified successfully",
       user: {
         _id: user._id,
         email: user.email,
+        role: user.role ?? "user",
       },
+      token: token,
     });
   } catch (err) {
     console.error("Login failed:", err.name);
@@ -66,34 +78,25 @@ export const loginController = async (request, response) => {
 };
 
 export const signUpController = async (request, response) => {
-  response.set("Cache-Control", "no-store");
-
   try {
-    const credentials = readCredentials(request.body);
-
-    if (!credentials) {
-      return response.status(400).json({
-        message:
-          "Valid email and password are required. Password must not exceed 72 bytes.",
-      });
-    }
-
-    const { email, password } = credentials;
+    const { email, password } = request.body;
 
     if (
-      password.length < 8 ||
-      !/[A-Z]/.test(password) ||
-      !/[a-z]/.test(password) ||
-      !/[0-9]/.test(password) ||
-      !/[^A-Za-z0-9]/.test(password)
+      typeof email !== "string" ||
+      !email.trim() ||
+      typeof password !== "string" ||
+      password.length < 8
     ) {
       return response.status(400).json({
-        message:
-          "Password needs at least 8 characters, uppercase, lowercase, number and special character.",
+        message: "Email and a password of at least 8 characters are required",
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    const trimmedEmail = email.trim();
+
+    const existingUser = await User.findOne({
+      email: trimmedEmail,
+    });
 
     if (existingUser) {
       return response.status(409).json({
@@ -104,25 +107,28 @@ export const signUpController = async (request, response) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await User.create({
-      email,
+      email: trimmedEmail,
       password: hashedPassword,
+      role: "user",
     });
-
+    const token = signAuthToken(user);
     return response.status(201).json({
       message: "User created",
       user: {
-        _id: user._id,
+        _id: user._id.toString(),
         email: user.email,
+        role: user.role,
       },
+      token: token,
     });
   } catch (err) {
+    console.error("SIGNUP ERROR:", err);
+
     if (err.code === 11000) {
       return response.status(409).json({
         message: "Email is already registered",
       });
     }
-
-    console.error("Sign up failed:", err.name);
 
     return response.status(500).json({
       message: "Internal Server Error",
