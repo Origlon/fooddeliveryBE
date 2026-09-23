@@ -1,18 +1,21 @@
-import express, { response } from "express";
+import "dotenv/config";
+
+import express from "express";
 import mongoose from "mongoose";
 import { connectDB } from "./connectDB.js";
 import { User } from "./schemas/user.schemas.js";
-import cors from "cors"
+import cors from "cors";
 import { FoodCategory } from "./schemas/food-category.js";
-import AuthRouter from "./router/auth/auth.js"
-import FoodCategoryRouter from "./router/food-category/food-category-router.js"
+import AuthRouter from "./router/auth/auth.js";
+import FoodCategoryRouter from "./router/food-category/food-category-router.js";
 
 const app = express();
 
-const PORT = 2222;
+const PORT = process.env.PORT || 2222;
 
 app.use(express.json());
-app.use(cors())
+app.use(cors());
+
 connectDB();
 
 app.get("/api/health", (request, response) => {

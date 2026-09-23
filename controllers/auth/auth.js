@@ -1,16 +1,26 @@
 import bcrypt from "bcryptjs";
-import { User } from "../../schemas/user.schemas.js";
 import jwt from "jsonwebtoken";
-const JWT_SECRET = "testing";
+import { User } from "../../schemas/user.schemas.js";
 
 const signAuthToken = (user) => {
-  return jwt.sign({ email: user.email, password: user.password }, JWT_SECRET, {
-    expiresIn: "7d",
-  });
+  return jwt.sign(
+    {
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "7d",
+    }
+  );
 };
 
 const readCredentials = (body) => {
-  if (typeof body?.email !== "string" || typeof body?.password !== "string") {
+  if (
+    typeof body?.email !== "string" ||
+    typeof body?.password !== "string"
+  ) {
     return null;
   }
 
@@ -49,7 +59,8 @@ export const loginController = async (request, response) => {
       typeof user?.password === "string" &&
       /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(user.password);
 
-    const isMatch = hasHash && (await bcrypt.compare(password, user.password));
+    const isMatch =
+      hasHash && (await bcrypt.compare(password, user.password));
 
     if (!isMatch) {
       return response.status(401).json({
@@ -66,7 +77,7 @@ export const loginController = async (request, response) => {
         email: user.email,
         role: user.role ?? "user",
       },
-      token: token,
+      token,
     });
   } catch (err) {
     console.error("Login failed:", err.name);
@@ -111,7 +122,9 @@ export const signUpController = async (request, response) => {
       password: hashedPassword,
       role: "user",
     });
+
     const token = signAuthToken(user);
+
     return response.status(201).json({
       message: "User created",
       user: {
@@ -119,7 +132,7 @@ export const signUpController = async (request, response) => {
         email: user.email,
         role: user.role,
       },
-      token: token,
+      token,
     });
   } catch (err) {
     console.error("SIGNUP ERROR:", err);
