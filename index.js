@@ -8,6 +8,7 @@ import cors from "cors";
 import { FoodCategory } from "./schemas/food-category.js";
 import AuthRouter from "./router/auth/auth.js";
 import FoodCategoryRouter from "./router/food-category/food-category-router.js";
+import FoodRouter from "./router/food/food-router.js";
 
 const app = express();
 
@@ -24,7 +25,7 @@ app.get("/api/health", (request, response) => {
 
 app.use("/auth", AuthRouter);
 app.use("/food-category", FoodCategoryRouter);
-
+app.use("/food", FoodRouter)
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
